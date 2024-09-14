@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bomberman Sprite Animation</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <canvas id="escenario" width="500" height="500"></canvas>
+
+    <script>
+        const my_canvas = document.getElementById('escenario');
+        const ctx = my_canvas.getContext('2d');
+        var speed = 2;
+        var score = 0;
+        var walls = [];
+        var pause = false;
+        var bombs = []; // Array para almacenar las bombas
+
+        // Bomberman  IMAGEWIDTH: 224PX /7 = 32PX   IMAGEHEIGHT: 128PX/4 = 32PX
+        const sprite = new Image();
+        sprite.src = "/sprites/NeoEarlyBomberman.gif";
+        const spriteWidth = 32; 
+        const spriteHeight = 32;
+
+        let currentFrame = 0; // Cuadro de animación actual
+        let totalFrames = 1; // Número de cuadros en el sprite sheet
+        let frameRow = 2; // Índice de la fila del personaje Bomberman
+    
+        let frameCounter = 0; // Contador de frames para ralentizar la animación
+        const frameDelay = 5; // Cambia el número de frames por segundo (entre más alto, más lenta la animación)
+    
+        // Función para actualizar el cuadro de animación
+        function updateFrame() {
+            frameCounter++;
+            if (frameCounter >= frameDelay) {
+                currentFrame = (currentFrame + 1) % totalFrames; // Cambia el cuadro de animación
+                frameCounter = 0; // Reinicia el contador
+            }
+        }
+
+        class Rectangulo {
+            constructor(x, y, width, height, speed) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.speed = speed;
+            }
+
+            tocando(otro) {
+                return (
+                    this.x < otro.x + otro.width &&
+                    this.x + this.width > otro.x &&
+                    this.y < otro.y + otro.height &&
+                    this.y + this.height > otro.y
+                );
+            }
+        }
+
+        class Bomba {
+            constructor(x, y, radius, delay) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.delay = delay;
+                this.timer = delay;
+                this.exploded = false;
+            }
+
+            update() {
+                if (this.timer > 0) {
+                    this.timer--;
+                } else {
+                    this.exploded = true;
+                }
+            }
+
+            draw() {
+                if (!this.exploded) {
+                    ctx.fillStyle = 'red';
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.radius / 2, this.y + this.radius / 2, this.radius, 0, 2 * Math.PI);
+                    ctx.fill();
+                } else {
+                    this.drawExplosion();
+                }
+            }
+
+            drawExplosion() {
+                ctx.fillStyle = 'orange';
+                ctx.beginPath();
+                ctx.arc(this.x + this.radius / 2, this.y + this.radius / 2, this.radius * 2, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        var player = new Rectangulo(280, 280, spriteWidth, spriteHeight, speed);
+        var target = new Rectangulo(100, 100, 32, 32, 10);
+
+        walls.push(new Rectangulo(50, 400, 300, 32, 10));
+        walls.push(new Rectangulo(50, 200, 300, 32, 10));
+
+        // Estados de las teclas presionadas
+        const keysPressed = {
+            up: false,
+            down: false,
+            left: false,
+            right: false,
+            space: false
+        };
+
+        document.addEventListener("keydown", function(e) {
+            switch (e.keyCode) {
+                case 87: // W - arriba
+                    totalFrames = 7; // Cambiar a múltiples cuadros para la animación
+                    keysPressed.up = true;
+                    frameRow = 0; // Cambiar la fila del sprite para la animación de caminar hacia arriba
+                    break;
+                case 65: // A - izquierda
+                    totalFrames = 7; // Cambiar a múltiples cuadros para la animación
+                    keysPressed.left = true;
+                    frameRow = 3; // Cambiar la fila para caminar a la izquierda
+                    break;
+                case 83: // S - abajo
+                    totalFrames = 7; // Cambiar a múltiples cuadros para la animación
+                    keysPressed.down = true;
+                    frameRow = 2; // Cambiar la fila para caminar hacia abajo
+                    break;
+                case 68: // D - derecha
+                    totalFrames = 7; // Cambiar a múltiples cuadros para la animación
+                    keysPressed.right = true;
+                    frameRow = 1; // Cambiar la fila para caminar a la derecha
+                    break;
+                case 32: // Espacio para pausar o colocar bomba
+                    totalFrames = 7; // Cambiar a múltiples cuadros para la animación
+                    keysPressed.space = true;
+                    break;
+            }
+        });
+
+        document.addEventListener("keyup", function(e) {
+            switch (e.keyCode) {
+                case 87:
+                    keysPressed.up = false;
+                    break;
+                case 65:
+                    keysPressed.left = false;
+                    break;
+                case 83:
+                    keysPressed.down = false;
+                    break;
+                case 68:
+                    keysPressed.right = false;
+                    break;
+                case 32:
+                    keysPressed.space = false;
+                    break;
+            }
+
+            // Si no se presiona ninguna tecla de movimiento, vuelve a un solo frame (sin animación)
+            if (!keysPressed.up && !keysPressed.down && !keysPressed.left && !keysPressed.right) {
+                totalFrames = 1;
+            }
+        });
+
+        function update() {
+            if (!pause) {
+                if (keysPressed.up) {
+                    player.y -= speed;
+                }
+                if (keysPressed.left) {
+                    player.x -= speed;
+                }
+                if (keysPressed.down) {
+                    player.y += speed;
+                }
+                if (keysPressed.right) {
+                    player.x += speed;
+                }
+
+                // Colocar bomba si se presiona la tecla espacio
+                if (keysPressed.space) {
+                    bombs.push(new Bomba(player.x, player.y, 16, 100)); // Añadir bomba en la posición del jugador
+                }
+
+                // Actualizar el cuadro del sprite cada vez que se mueva
+                updateFrame();
+
+                // Actualizar bombas
+                bombs.forEach(bomb => bomb.update());
+
+                // Eliminar bombas que han explotado
+                bombs = bombs.filter(bomb => !bomb.exploded);
+
+                if (player.tocando(target)) {
+                    target.x = Math.floor(Math.random() * 500);
+                    target.y = Math.floor(Math.random() * 500);
+                    //score += 5;
+                }
+            }
+        }
+
+        function pintar() {
+            ctx.clearRect(0, 0, my_canvas.width, my_canvas.height); // Limpiar el canvas antes de dibujar
+            ctx.fillStyle = 'rgb(47, 0, 255)';
+
+            // Dibujar el jugador con el sprite animado
+            ctx.drawImage(
+                sprite, currentFrame * spriteWidth, frameRow * spriteHeight, spriteWidth, spriteHeight, player.x, player.y, spriteWidth, spriteHeight
+            );
+
+            // Dibujar el objetivo
+            ctx.fillStyle = target.color;
+            ctx.fillRect(target.x, target.y, target.width, target.height);
+            ctx.strokeRect(target.x, target.y, target.width, target.height);
+            ctx.fill();
+
+            // Dibujar las paredes
+            walls.forEach(function(wall) {
+                ctx.fillStyle = wall.color;
+                ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+                ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
+                ctx.fill();
+            });
+
+            // Dibujar bombas
+            bombs.forEach(bomb => bomb.draw());
+
+            ctx.font = "20px Courier New";
+            ctx.fillStyle = 'black';
+            ctx.strokeText("Score:" + score, 10, 20);
+
+            if (pause) {
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(0, 0, my_canvas.width, my_canvas.height);
+
+                ctx.font = "50px Courier New";
+                ctx.fillStyle = 'white';
+                ctx.strokeText("P A U S E", 150, 250);
+            }
+
+            update();
+            requestAnimationFrame(pintar);
+        }
+
+        requestAnimationFrame(pintar);
+
+    </script>
+</body>
+</html>

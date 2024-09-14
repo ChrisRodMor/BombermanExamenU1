@@ -1,0 +1,18 @@
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-image: url("../sprites/block_undestroyable.png");
+    overflow: hidden;
+}
+
+canvas {
+    border: 5px solid #fff;
+    width: 60vw;
+    height: 90vh;
+    background-color: rgb(0, 82, 24);
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
