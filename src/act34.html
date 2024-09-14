@@ -3,20 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bomberman Sprite Animation</title>
+    <title>Bomberman</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <canvas id="escenario" width="500" height="500"></canvas>
+    <canvas id="escenario" width="544" height="416"></canvas>
 
     <script>
         const my_canvas = document.getElementById('escenario');
         const ctx = my_canvas.getContext('2d');
-        var speed = 2;
+        ctx.imageSmoothingEnabled = false;
+
+
+        var speed = 1.5;
         var score = 0;
         var walls = [];
         var pause = false;
-        var bombs = []; // Array para almacenar las bombas
+        var bombs = [];
+
+        const Muro = new Image();
+        Muro.src = "/sprites/block_undestroyable.png";
 
         // Bomberman  IMAGEWIDTH: 224PX /7 = 32PX   IMAGEHEIGHT: 128PX/4 = 32PX
         const sprite = new Image();
@@ -29,7 +35,27 @@
         let frameRow = 2; // Índice de la fila del personaje Bomberman
     
         let frameCounter = 0; // Contador de frames para ralentizar la animación
-        const frameDelay = 5; // Cambia el número de frames por segundo (entre más alto, más lenta la animación)
+        const frameDelay = 10; // Cambia el número de frames por segundo (entre más alto, más lenta la animación)
+
+
+        //0 = camino, 1 = muro
+        const map = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ];
+        const blockSize = 32; // Tamaño del bloque (ajustar según sea necesario)
+
     
         // Función para actualizar el cuadro de animación
         function updateFrame() {
@@ -96,11 +122,10 @@
             }
         }
 
-        var player = new Rectangulo(280, 280, spriteWidth, spriteHeight, speed);
+        var player = new Rectangulo(32, 32, spriteWidth, spriteHeight, speed);
         var target = new Rectangulo(100, 100, 32, 32, 10);
 
         walls.push(new Rectangulo(50, 400, 300, 32, 10));
-        walls.push(new Rectangulo(50, 200, 300, 32, 10));
 
         // Estados de las teclas presionadas
         const keysPressed = {
@@ -116,7 +141,7 @@
                 case 87: // W - arriba
                     totalFrames = 7; // Cambiar a múltiples cuadros para la animación
                     keysPressed.up = true;
-                    frameRow = 0; // Cambiar la fila del sprite para la animación de caminar hacia arriba
+                    frameRow = 0;
                     break;
                 case 65: // A - izquierda
                     totalFrames = 7; // Cambiar a múltiples cuadros para la animación
@@ -159,7 +184,6 @@
                     break;
             }
 
-            // Si no se presiona ninguna tecla de movimiento, vuelve a un solo frame (sin animación)
             if (!keysPressed.up && !keysPressed.down && !keysPressed.left && !keysPressed.right) {
                 totalFrames = 1;
             }
@@ -180,18 +204,17 @@
                     player.x += speed;
                 }
 
-                // Colocar bomba si se presiona la tecla espacio
                 if (keysPressed.space) {
-                    bombs.push(new Bomba(player.x, player.y, 16, 100)); // Añadir bomba en la posición del jugador
+                    bombs.push(new Bomba(player.x, player.y+32, 16, 100));
                 }
 
-                // Actualizar el cuadro del sprite cada vez que se mueva
+
                 updateFrame();
 
-                // Actualizar bombas
+
                 bombs.forEach(bomb => bomb.update());
 
-                // Eliminar bombas que han explotado
+
                 bombs = bombs.filter(bomb => !bomb.exploded);
 
                 if (player.tocando(target)) {
@@ -203,47 +226,48 @@
         }
 
         function pintar() {
-            ctx.clearRect(0, 0, my_canvas.width, my_canvas.height); // Limpiar el canvas antes de dibujar
-            ctx.fillStyle = 'rgb(47, 0, 255)';
+            ctx.clearRect(0, 0, my_canvas.width, my_canvas.height);
+        
+            for (let row = 0; row < map.length; row++) {
+                for (let col = 0; col < map[row].length; col++) {
+                    if (map[row][col] === 1) {
+                        ctx.drawImage(Muro, col * blockSize, row * blockSize, blockSize, blockSize);
+                    }
+                }
+            }
+            
 
-            // Dibujar el jugador con el sprite animado
+            bombs.forEach(bomb => bomb.draw());
+            
+
             ctx.drawImage(
                 sprite, currentFrame * spriteWidth, frameRow * spriteHeight, spriteWidth, spriteHeight, player.x, player.y, spriteWidth, spriteHeight
             );
-
+        
             // Dibujar el objetivo
-            ctx.fillStyle = target.color;
-            ctx.fillRect(target.x, target.y, target.width, target.height);
-            ctx.strokeRect(target.x, target.y, target.width, target.height);
-            ctx.fill();
-
-            // Dibujar las paredes
-            walls.forEach(function(wall) {
-                ctx.fillStyle = wall.color;
-                ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
-                ctx.strokeRect(wall.x, wall.y, wall.width, wall.height);
-                ctx.fill();
-            });
-
-            // Dibujar bombas
-            bombs.forEach(bomb => bomb.draw());
-
-            ctx.font = "20px Courier New";
-            ctx.fillStyle = 'black';
-            ctx.strokeText("Score:" + score, 10, 20);
-
+            //ctx.fillStyle = 'yellow'; // Color del objetivo
+            //ctx.fillRect(target.x, target.y, target.width, target.height);
+            //ctx.strokeRect(target.x, target.y, target.width, target.height);
+            //ctx.fill();
+        
+        
+            //ctx.font = "20px Courier New";
+            //ctx.fillStyle = 'black';
+            //ctx.strokeText("Score:" + score, 10, 20);
+        
             if (pause) {
                 ctx.fillStyle = 'rgba(0,0,0,0.5)';
                 ctx.fillRect(0, 0, my_canvas.width, my_canvas.height);
-
+        
                 ctx.font = "50px Courier New";
                 ctx.fillStyle = 'white';
                 ctx.strokeText("P A U S E", 150, 250);
             }
-
+        
             update();
             requestAnimationFrame(pintar);
         }
+        
 
         requestAnimationFrame(pintar);
 

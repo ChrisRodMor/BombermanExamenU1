@@ -3,16 +3,15 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    background-image: url("../sprites/block_undestroyable.png");
+    height: 110vh;
+    background-color: #6B696B;
     overflow: hidden;
 }
 
 canvas {
-    border: 5px solid #fff;
     width: 60vw;
     height: 90vh;
-    background-color: rgb(0, 82, 24);
+    background-color: rgb(7,122,45);
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
 }
