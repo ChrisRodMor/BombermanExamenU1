@@ -35,6 +35,24 @@
         let frameCounter = 0; // Contador de frames para ralentizar la animación
         const frameDelay = 10; // Cambia el número de frames por segundo (entre más alto, más lenta la animación)
 
+
+        // SPRITE BOMBA
+        const bombaSprite = new Image();
+        bombaSprite.src = "/sprites/bomb.png"; // Ruta de tu sprite de la bomba
+        const bombaSpriteWidth = 32;  // Ajusta al tamaño de cada frame de la bomba
+        const bombaSpriteHeight = 32;
+        let bombaCurrentFrame = 0;
+        let bombaTotalFrames = 4;  // Total de cuadros en el sprite de la bomba
+
+        const explotionSprite = new Image();
+        explotionSprite.src = "/sprites/ExplotionEffect.png"; // Ruta de tu sprite de la bomba
+        const  explotionSpriteWidth = 32;  // Ajusta al tamaño de cada frame de la bomba
+        const  explotionSpriteHeight = 32;
+        let  explotionSpriteCurrentFrame = 0;
+        let  explotionSpriteTotalFrames = 4;  // Total de cuadros en el sprite de la bomba
+        
+
+
         const map = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -87,33 +105,50 @@
                 this.radius = radius;
                 this.delay = delay;
                 this.timer = delay;
+                this.solid = true;
                 this.exploded = false;
+                this.frameCounter = 0;
+                this.frameDelay = 15;
             }
-
+        
             update() {
                 if (this.timer > 0) {
                     this.timer--;
+                    this.updateFrame()
                 } else {
                     this.exploded = true;
+                    this.solid = false; // La bomba deja de ser un obstáculo después de explotar
                 }
             }
-
+        
+            updateFrame() {
+                this.frameCounter++;
+                if (this.frameCounter >= this.frameDelay) {
+                    bombaCurrentFrame = (bombaCurrentFrame + 1) % bombaTotalFrames;
+                    this.frameCounter = 0;
+                }
+            }
+        
             draw() {
                 if (!this.exploded) {
-                    ctx.fillStyle = 'red';
-                    ctx.beginPath();
-                    ctx.arc(this.x + this.radius / 2, this.y + this.radius / 2, this.radius, 0, 2 * Math.PI);
-                    ctx.fill();
+                    ctx.drawImage(
+                        bombaSprite,
+                        bombaCurrentFrame * bombaSpriteWidth, 0, // Posición en el sprite sheet
+                        bombaSpriteWidth, bombaSpriteHeight, // Tamaño del frame
+                        this.x, this.y, bombaSpriteWidth, bombaSpriteHeight // Dónde dibujar en el canvas
+                    );
                 } else {
                     this.drawExplosion();
                 }
             }
-
+        
             drawExplosion() {
-                ctx.fillStyle = 'orange';
-                ctx.beginPath();
-                ctx.arc(this.x + this.radius / 2, this.y + this.radius / 2, this.radius * 2, 0, 2 * Math.PI);
-                ctx.fill();
+                ctx.drawImage(
+                        explotionSprite,
+                        bombaCurrentFrame * bombaSpriteWidth, 0, // Posición en el sprite sheet
+                        bombaSpriteWidth, bombaSpriteHeight, // Tamaño del frame
+                        this.x, this.y, bombaSpriteWidth, bombaSpriteHeight // Dónde dibujar en el canvas
+                    );
             }
         }
 
@@ -131,7 +166,7 @@
         document.addEventListener("keydown", function(e) {
             switch (e.keyCode) {
                 case 87:
-                    totalFrames = 7; // 
+                    totalFrames = 7;
                     keysPressed.up = true;
                     frameRow = 0;
                     break;
@@ -242,7 +277,6 @@
             }
         }
         
-        // Llama a esta función una vez para inicializar los muros
         initializeWalls();
         
         function pintar() {
@@ -261,8 +295,8 @@
 
             
             ctx.fillStyle = 'blue';
-            //ctx.strokeRect(player.x, player.y, spriteWidth, spriteHeight);
-            //ctx.strokeRect(player.x+7, player.y+5, spriteWidth-13, spriteHeight-10);
+            ctx.strokeRect(player.x, player.y, spriteWidth, spriteHeight);
+            ctx.strokeRect(player.x+7, player.y+5, spriteWidth-13, spriteHeight-10);
         
             if (pause) {
                 ctx.fillStyle = 'rgba(0,0,0,0.5)';

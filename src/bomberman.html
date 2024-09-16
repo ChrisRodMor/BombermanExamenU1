@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bomberman</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <canvas id="escenario" width="544" height="416"></canvas>
+
+    <script>
+        const my_canvas = document.getElementById('escenario');
+        const ctx = my_canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+
+        const blockSize = 32;
+        const movementSpeed = 4; // A mayor número, menor será la velocidad de desplazamiento
+        let bombs = [];
+
+        const Muro = new Image();
+        Muro.src = "/sprites/block_undestroyable.png";
+
+        // SPRITE Bomberman
+        const sprite = new Image();
+        sprite.src = "/sprites/NeoEarlyBomberman.gif";
+        const spriteWidth = blockSize;
+        const spriteHeight = blockSize;
+        let currentFrame = 0;
+        let totalFrames = 4;
+        let frameRow = 2;
+        let frameCounter = 0;
+        const frameDelay = 10;
+
+        // SPRITE BOMBA
+        const bombaSprite = new Image();
+        bombaSprite.src = "/sprites/bomb.png";
+        const bombaFrames = 4;
+        let bombaCurrentFrame = 0;
+        let bombaFrameDelay = 10;
+        let bombaFrameCounter = 0;
+
+        // SPRITE BOMBA EXPLOSION
+        const explotionSprite = new Image();
+        explotionSprite.src = "/sprites/explosionesSprite.png";
+        const explotionSpriteFrames = 6;
+        let explotionSpriteCurrentFrame = 0;
+        let explotionSpriteFrameDelay = 10;
+        let explotionSpriteFrameCounter = 0;
+
+
+
+        const map = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ];
+
+        function updateFrame() {
+            frameCounter++;
+            if (frameCounter >= frameDelay) {
+                currentFrame = (currentFrame + 1) % totalFrames;
+                frameCounter = 0;
+            }
+        }
+
+        function updateBombaFrame() {
+            bombaFrameCounter++;
+            if (bombaFrameCounter >= bombaFrameDelay) {
+                bombaCurrentFrame = (bombaCurrentFrame + 1) % bombaFrames;
+                bombaFrameCounter = 0;
+            }
+        }
+
+        function updateExplotionFrame() {
+            explotionSpriteFrameCounter++;
+            if (explotionSpriteFrameCounter >= explotionSpriteFrameDelay) {
+                explotionSpriteCurrentFrame = (explotionSpriteCurrentFrame + 1) % explotionSpriteFrames;
+                explotionSpriteFrameCounter = 0;
+            }
+        }
+        
+
+        class Character {
+            constructor(gridX, gridY, width, height) {
+                this.gridX = gridX;
+                this.gridY = gridY;
+                this.width = width;
+                this.height = height;
+                this.x = gridX * blockSize;
+                this.y = gridY * blockSize;
+                this.targetX = this.x;
+                this.targetY = this.y;
+                this.moving = false;
+                this.moveDirection = null;
+            }
+
+            move(dx, dy) {
+                const newX = this.gridX + dx;
+                const newY = this.gridY + dy;
+
+                if (map[newY] && map[newY][newX] === 0) {
+                    this.gridX = newX;
+                    this.gridY = newY;
+                    this.targetX = newX * blockSize;
+                    this.targetY = newY * blockSize;
+                    this.moving = true;
+                    this.moveDirection = dy !== 0 ? (dy > 0 ? 'down' : 'up') : (dx > 0 ? 'right' : 'left');
+                }
+            }
+
+            update() {
+                if (this.moving) {
+                    const dx = (this.targetX - this.x) / movementSpeed;
+                    const dy = (this.targetY - this.y) / movementSpeed;
+                    this.x += dx;
+                    this.y += dy;
+
+                    // Check if we have reached the target position
+                    if (Math.abs(this.targetX - this.x) < Math.abs(dx) && Math.abs(this.targetY - this.y) < Math.abs(dy)) {
+                        this.x = this.targetX;
+                        this.y = this.targetY;
+                        this.moving = false;
+                        this.moveDirection = null;
+                    }
+                }
+
+                updateFrame();
+            }
+        }
+
+        class Bomba {
+            constructor(gridX, gridY, radius, delay) {
+                this.gridX = gridX;
+                this.gridY = gridY;
+                this.radius = radius;
+                this.timer = delay;
+                this.solid = true;
+                this.exploded = false;
+                this.explosionDuration = 30; // Duración de la explosión en frames
+                this.explosionTimer = this.explosionDuration;
+                this.explosions = []; // Almacena las explosiones en las 4 direcciones
+            }
+        
+            update() {
+                if (this.timer > 0) {
+                    this.timer--;
+                } else {
+                    if (!this.exploded) {
+                        this.exploded = true;
+                        this.solid = false;
+                        this.generateExplosions(); // Generar explosiones en las 4 direcciones
+                    } else {
+                        this.explosionTimer--;
+                        if (this.explosionTimer <= 0) {
+                            this.exploded = false; // O puedes mantenerla para la depuración
+                        }
+                    }
+                }
+                if (!this.exploded) {
+                    updateBombaFrame();
+                } else {
+                    updateExplotionFrame();
+                }
+            }
+        
+            draw() {
+                if (!this.exploded) {
+                    ctx.drawImage(
+                        bombaSprite,
+                        bombaCurrentFrame * blockSize, 0,
+                        blockSize, blockSize,
+                        this.gridX * blockSize, this.gridY * blockSize,
+                        blockSize, blockSize
+                    );
+                } else {
+                    this.drawExplosions();
+                }
+            }
+        
+            generateExplosions() {
+                // Explosión en la dirección hacia arriba
+                for (let i = 1; i <= this.radius; i++) {
+                    if (map[this.gridY - i] && map[this.gridY - i][this.gridX] !== 1) {
+                        this.explosions.push({ x: this.gridX, y: this.gridY - i, direction: 'up' });
+                    } else {
+                        break;
+                    }
+                }
+        
+                // Explosión en la dirección hacia abajo
+                for (let i = 1; i <= this.radius; i++) {
+                    if (map[this.gridY + i] && map[this.gridY + i][this.gridX] !== 1) {
+                        this.explosions.push({ x: this.gridX, y: this.gridY + i, direction: 'down' });
+                    } else {
+                        break;
+                    }
+                }
+        
+                // Explosión en la dirección hacia la izquierda
+                for (let i = 1; i <= this.radius; i++) {
+                    if (map[this.gridY][this.gridX - i] !== 1) {
+                        this.explosions.push({ x: this.gridX - i, y: this.gridY, direction: 'left' });
+                    } else {
+                        break;
+                    }
+                }
+        
+                // Explosión en la dirección hacia la derecha
+                for (let i = 1; i <= this.radius; i++) {
+                    if (map[this.gridY][this.gridX + i] !== 1) {
+                        this.explosions.push({ x: this.gridX + i, y: this.gridY, direction: 'right' });
+                    } else {
+                        break;
+                    }
+                }
+            }
+        
+            drawExplosions() {
+                // Dibuja la explosión central
+                this.drawExplosion(this.gridX, this.gridY, 'center');
+        
+                // Dibuja las explosiones en las 4 direcciones
+                this.explosions.forEach(exp => this.drawExplosion(exp.x, exp.y, exp.direction));
+            }
+        
+            drawExplosion(x, y, direction) {
+                const spriteRow = {
+                    'center': 0, // Cambia según cómo esté organizada tu hoja de sprites
+                    'up': 3,
+                    'down': 4,
+                    'left': 1,
+                    'right': 2
+                };
+        
+                const row = spriteRow[direction] || 0; // Fila del sprite según la dirección
+        
+                ctx.drawImage(
+                    explotionSprite,
+                    explotionSpriteCurrentFrame * blockSize, row * blockSize,
+                    blockSize, blockSize,
+                    x * blockSize, y * blockSize,
+                    blockSize, blockSize
+                );
+            }
+        }
+        
+        
+        
+        
+
+        const player = new Character(1, 1, blockSize, blockSize);
+        const keysPressed = { up: false, down: false, left: false, right: false, space: false };
+
+        document.addEventListener("keydown", (e) => {
+            switch (e.keyCode) {
+                case 87:
+                    totalFrames = 7;
+                    frameRow = 0;
+                    if (!keysPressed.up && !keysPressed.down) { 
+                        player.move(0, -1); 
+                    }
+                    keysPressed.up = true; 
+                break;
+                case 65:
+                    totalFrames = 7;
+                    frameRow = 3;
+                    if (!keysPressed.left && !keysPressed.right) { 
+                        player.move(-1, 0); 
+                    }
+                    keysPressed.left = true; 
+                break; // A
+                case 83:
+                    totalFrames = 7;
+                    frameRow = 2;
+                    if (!keysPressed.down && !keysPressed.up) { 
+                        player.move(0, 1); 
+                    }
+                    keysPressed.down = true; 
+                break; // S
+                case 68:
+                    totalFrames = 7;
+                    frameRow = 1;
+                    if (!keysPressed.right && !keysPressed.left) { 
+                        player.move(1, 0); 
+                    }
+                    keysPressed.right = true; 
+                break; // D
+                case 32: 
+                    keysPressed.space = true; 
+                break; // Space (Bomba)
+            }
+        });
+
+        document.addEventListener("keyup", (e) => {
+            switch (e.keyCode) {
+                case 87: keysPressed.up = false; break;
+                case 65: keysPressed.left = false; break;
+                case 83: keysPressed.down = false; break;
+                case 68: keysPressed.right = false; break;
+                case 32: keysPressed.space = false; break;
+            }
+            if (!keysPressed.up && !keysPressed.down && !keysPressed.left && !keysPressed.right) {
+                player.moving = false;
+                totalFrames = 1; // Parar animación si no se mueve
+            }
+        });
+
+        function update() {
+            if (keysPressed.space) {
+                bombs.push(new Bomba(player.gridX, player.gridY, 1, 100)); // Ajusta el radio de explosión según sea necesario
+            }
+        
+            player.update();
+            bombs.forEach(bomb => bomb.update());
+            bombs = bombs.filter(bomb => bomb.exploded || bomb.explosionTimer > 0); // Mantén la bomba si la explosión está en curso
+        }
+        
+        function render() {
+            ctx.clearRect(0, 0, my_canvas.width, my_canvas.height);
+        
+            drawMap();
+            ctx.drawImage(
+                sprite,
+                currentFrame * spriteWidth, frameRow * spriteHeight,
+                spriteWidth, spriteHeight,
+                player.x, player.y,
+                blockSize, blockSize
+            );
+        
+            bombs.forEach(bomb => bomb.draw());
+        }
+        
+        
+
+        function drawMap() {
+            for (let row = 0; row < map.length; row++) {
+                for (let col = 0; col < map[row].length; col++) {
+                    if (map[row][col] === 1) {
+                        ctx.drawImage(Muro, col * blockSize, row * blockSize, blockSize, blockSize);
+                    }
+                }
+            }
+        }
+
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
