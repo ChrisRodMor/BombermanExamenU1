@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Bomberman</title>
-        <link rel="stylesheet" href="src/styles.css">
+        <link rel="stylesheet" href="styles.css">
         <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     </head>
     <body>
@@ -40,13 +40,11 @@
         
         <!--video-->
         <video autoplay muted loop id="backgroundVideo">
-            <source src="backgroundMOVING/SB2.mp4" type="video/mp4">
+            <source src="../backgroundMOVING/SB2.mp4" type="video/mp4">
         </video>
         
         <!--JUEGO-->
         <canvas id="escenario" width="544" height="416"></canvas>
-
-        <script src="/src/scripts/map.js"></script>
         
         <script>
             const my_canvas = document.getElementById('escenario');
@@ -58,12 +56,12 @@
             let bombsUsed = 0;
 
             //SONGS
-            const stageSong = new Audio("OST/stageSong.mp3");
-            const lose = new Audio("OST/LOSE.mp3");
-            const win = new Audio("OST/win.mp3");
-            const Explosion = new Audio("OST/Explosion.mp3");
-            const ouch = new Audio("OST/ouch.mp3");
-            const tp = new Audio("OST/tp.mp3");
+            const stageSong = new Audio("../OST/stageSong.mp3");
+            const lose = new Audio("../OST/LOSE.mp3");
+            const win = new Audio("../OST/win.mp3");
+            const Explosion = new Audio("../OST/Explosion.mp3");
+            const ouch = new Audio("../OST/ouch.mp3");
+            const tp = new Audio("../OST/tp.mp3");
 
             //PLAYERSETTINGS
             const blockSize = 32;
@@ -103,11 +101,45 @@
             let explotionSpriteFrameDelay = 10;
             let explotionSpriteFrameCounter = 0;
 
+
+
+            const map = [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 2, 2, 0, 2, 0, 2, 2, 2, 2, 0, 2, 0, 0, 1],
+                [1, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 0, 1],
+                [1, 0, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 1],
+                [1, 2, 1, 2, 1, 2, 1, 2, 1, 0, 1, 2, 1, 2, 1, 2, 1],
+                [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+                [1, 2, 1, 2, 1, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1],
+                [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+                [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 0, 1, 2, 1, 2, 1],
+                [1, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 1],
+                [1, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 0, 1],
+                [1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            ];
+
+            /*const map = [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            ];*/
+
             const startButton = document.getElementById('startSinglePlayer');
             startButton.addEventListener('click', startGame);
 
             let timerInterval;
-            let timeRemaining = 180;
+            let timeRemaining = 10;
             const timerElement = document.getElementById('timer');
 
 
