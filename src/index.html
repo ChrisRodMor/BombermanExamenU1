@@ -9,20 +9,34 @@
 </head>
 <body>
 
-    <div id="scoreboard">
-        <span id="timer">Time: 180</span>
-        <span id="score">Score: 0</span>
-        <span id="bombsUsed">Bombs: 0</span>
-    </div>
-
+    
     <div id="startMenu" class="menu">
-       
         <h1>BOMBER-NAUT</h1>
         <br>
         <h1>TAP W,A,S,D To move, SPACE for Bombs</h1>
         <h1>Special Ability:  SHIFT(Teleport)</h1> 
         <button id="startSinglePlayer"></button>
     </div>
+    
+    <div id="loseScreen" class="fullScreenMenu" style="display: none;">
+        <h1>¡Perdiste!</h1>
+        <p>Tu personaje ha muerto.</p>
+        <button id="retryButtonLose">Volver al menú</button>
+    </div>
+    
+    <div id="winScreen" class="fullScreenMenu" style="display: none;">
+        <h1>¡Ganaste!</h1>
+        <p>¡Felicidades, completaste el nivel!</p>
+        <button id="retryButtonWin">Jugar de nuevo</button>
+    </div>
+    
+    
+    <div id="scoreboard">
+        <span id="timer">Time: 180</span>
+        <span id="score">Score: 0</span>
+        <span id="bombsUsed">Bombs: 0</span>
+    </div>
+    
 
     <video autoplay muted loop id="backgroundVideo">
         <source src="../backgroundMOVING/SB2.mp4" type="video/mp4">
@@ -93,13 +107,13 @@
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 0, 0, 2, 2, 0, 2, 0, 2, 2, 2, 2, 0, 2, 0, 0, 1],
             [1, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 0, 1],
-            [1, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 1],
-            [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1],
+            [1, 0, 2, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 1],
+            [1, 2, 1, 2, 1, 2, 1, 2, 1, 0, 1, 2, 1, 2, 1, 2, 1],
             [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-            [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1],
+            [1, 2, 1, 2, 1, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1],
             [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
-            [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1],
-            [1, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 1],
+            [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 0, 1, 2, 1, 2, 1],
+            [1, 0, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 1],
             [1, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 0, 1],
             [1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
@@ -125,7 +139,7 @@
         startButton.addEventListener('click', startGame);
 
         let timerInterval;
-        let timeRemaining = 180;
+        let timeRemaining = 10;
         const timerElement = document.getElementById('timer');
 
 
@@ -135,7 +149,7 @@
             timerElement.textContent = `Time: ${timeRemaining}`;
         } else {
             clearInterval(timerInterval);
-            endGame(true);
+            endGame(false);
         }
     }
 
@@ -540,6 +554,48 @@
             bombs.forEach(bomb => bomb.draw());
 
         }
+
+        function endGame(isWin) {
+            clearInterval(timerInterval);
+
+            document.getElementById('loseScreen').style.display = 'none';
+            document.getElementById('winScreen').style.display = 'none';
+        
+            if (!isWin) {
+                document.getElementById('loseScreen').style.display = 'flex';
+                const retryButtonLose = document.getElementById('retryButtonLose');
+                retryButtonLose.removeEventListener('click', restartGame);
+                retryButtonLose.addEventListener('click', () => {
+                    goToMainMenu();
+                });
+            } else {
+                document.getElementById('winScreen').style.display = 'flex';
+    
+                const retryButtonWin = document.getElementById('retryButtonWin');
+                retryButtonWin.removeEventListener('click', restartGame);
+                retryButtonWin.addEventListener('click', () => {
+                    restartGame(isWin);
+                });
+            }
+        }
+        
+        function restartGame(isWin) {
+            if (!isWin) {
+                document.getElementById('loseScreen').style.display = 'none';
+            } else {
+                document.getElementById('winScreen').style.display = 'none';
+            }
+            location.reload();
+        }
+        
+        function goToMainMenu() {
+            document.getElementById('loseScreen').style.display = 'none';
+            document.getElementById('winScreen').style.display = 'none';
+            window.location.href = 'index.html';
+        }
+        
+        
+        
 
         function updateScore(newScore) {
             score = newScore;
