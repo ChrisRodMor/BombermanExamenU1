@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Bomberman</title>
+        <link rel="stylesheet" href="src/styles.css">
+        <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        
+        <!-- PANTALLAS DE JUEGO-->
+        <div id="startMenu" class="menu">
+            <h1>BOMBER-NAUT</h1>
+            <br>
+            <h1>TAP W,A,S,D To move, SPACE for Bombs</h1>
+            <h1>Special Ability:  SHIFT(Teleport)</h1> 
+            <button id="startSinglePlayer"></button>
+        </div>
+        
+        <div id="loseScreen" class="fullScreenMenu" style="display: none;">
+            <h1>¡Perdiste!</h1>
+            <p>Tu personaje ha muerto.</p>
+            <button id="retryButtonLose">Volver al menú</button>
+        </div>
+        
+        <div id="winScreen" class="fullScreenMenu" style="display: none;">
+            <h1>¡Ganaste!</h1>
+            <p>¡Felicidades, completaste el nivel!</p>
+            <button id="retryButtonWin">Jugar de nuevo</button>
+        </div>
+        
+
+        <!--TablaPuntaje-->
+        <div id="scoreboard">
+            <span id="timer">Time: 180</span>
+            <span id="score">Score: 0</span>
+            <span id="bombsUsed">Bombs: 0</span>
+        </div>
+        
+        <!--video-->
+        <video autoplay muted loop id="backgroundVideo">
+            <source src="backgroundMOVING/SB2.mp4" type="video/mp4">
+        </video>
+        
+        <!--JUEGO-->
+        <canvas id="escenario" width="544" height="416"></canvas>
+
+        <script src="/src/scripts/map.js"></script>
+        
+        <script>
+            const my_canvas = document.getElementById('escenario');
+            const ctx = my_canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            
+            //SCORE
+            let score = 0;
+            let bombsUsed = 0;
+
+            //SONGS
+            const stageSong = new Audio("OST/stageSong.mp3");
+            const lose = new Audio("OST/LOSE.mp3");
+            const win = new Audio("OST/win.mp3");
+            const Explosion = new Audio("OST/Explosion.mp3");
+            const ouch = new Audio("OST/ouch.mp3");
+            const tp = new Audio("OST/tp.mp3");
+
+            //PLAYERSETTINGS
+            const blockSize = 32;
+            const movementSpeed = 4;
+            let bombs = [];
+
+            //PAREDES
+            const Muro = new Image();
+            Muro.src = "/sprites/block_undestroyable.png";
+            const MuroDestructible = new Image();
+            MuroDestructible.src = "/sprites/block_destroyable.png";
+
+            // SPRITE Bomberman
+            const sprite = new Image();
+            sprite.src = "/sprites/NeoEarlyBomberman.gif";
+            const spriteWidth = blockSize;
+            const spriteHeight = blockSize;
+            let currentFrame = 0;
+            let totalFrames = 1;
+            let frameRow = 2;
+            let frameCounter = 0;
+            const frameDelay = 10;
+
+            // SPRITE BOMBA
+            const bombaSprite = new Image();
+            bombaSprite.src = "/sprites/bomb.png";
+            const bombaFrames = 4;
+            let bombaCurrentFrame = 0;
+            let bombaFrameDelay = 10;
+            let bombaFrameCounter = 0;
+
+            // SPRITE BOMBA EXPLOSION
+            const explotionSprite = new Image();
+            explotionSprite.src = "/sprites/explosionesSprite.png";
+            const explotionSpriteFrames = 6;
+            let explotionSpriteCurrentFrame = 0;
+            let explotionSpriteFrameDelay = 10;
+            let explotionSpriteFrameCounter = 0;
+
+            const startButton = document.getElementById('startSinglePlayer');
+            startButton.addEventListener('click', startGame);
+
+            let timerInterval;
+            let timeRemaining = 180;
+            const timerElement = document.getElementById('timer');
+
+
+            function updateTimer() {
+            if (timeRemaining > 0) {
+                timeRemaining--;
+                timerElement.textContent = `Time: ${timeRemaining}`;
+            } else {
+                clearInterval(timerInterval);
+                endGame(false);
+            }
+        }
+
+
+            function updateFrame() {
+                frameCounter++;
+                if (frameCounter >= frameDelay) {
+                    currentFrame = (currentFrame + 1) % totalFrames;
+                    frameCounter = 0;
+                }
+            }
+
+            function updateBombaFrame() {
+                bombaFrameCounter++;
+                if (bombaFrameCounter >= bombaFrameDelay) {
+                    bombaCurrentFrame = (bombaCurrentFrame + 1) % bombaFrames;
+                    bombaFrameCounter = 0;
+                }
+            }
+
+            function updateExplotionFrame() {
+                explotionSpriteFrameCounter++;
+                if (explotionSpriteFrameCounter >= explotionSpriteFrameDelay) {
+                    explotionSpriteCurrentFrame = (explotionSpriteCurrentFrame + 1) % explotionSpriteFrames;
+                    explotionSpriteFrameCounter = 0;
+                }
+            }
+            
+
+            class Character {
+                constructor(gridX, gridY, width, height) {
+                    this.gridX = gridX;
+                    this.gridY = gridY;
+                    this.width = width;
+                    this.height = height;
+                    this.x = gridX * blockSize;
+                    this.y = gridY * blockSize;
+                    this.targetX = this.x;
+                    this.targetY = this.y;
+                    this.moving = false;
+                    this.moveDirection = null;
+                    this.isDead = false;
+                }
+            
+                move(dx, dy) {
+                    if (this.isDead){
+                        return;
+                    }
+                    else{
+                        const newX = this.gridX + dx;
+                        const newY = this.gridY + dy;
+                
+                        if (map[newY] && map[newY][newX] === 0 && !bombs.some(bomb => bomb.gridX === newX && bomb.gridY === newY)) {
+                            this.gridX = newX;
+                            this.gridY = newY;
+                            this.targetX = newX * blockSize;
+                            this.targetY = newY * blockSize;
+                            this.moving = true;
+                            this.moveDirection = dy !== 0 ? (dy > 0 ? 'down' : 'up') : (dx > 0 ? 'right' : 'left');
+                        }
+                    }
+                }
+
+                moveToRandomPosition() {
+                    let newX, newY;
+            
+                    do {
+                        newX = Math.floor(Math.random() * map[0].length);
+                        newY = Math.floor(Math.random() * map.length);
+                    } while (map[newY][newX] !== 0 || bombs.some(bomb => bomb.gridX === newX && bomb.gridY === newY));
+            
+                    this.gridX = newX;
+                    this.gridY = newY;
+                    this.targetX = newX * blockSize;
+                    this.targetY = newY * blockSize;
+                    this.moving = true;
+                }
+            
+                update() {
+                    if (this.isDead) return;
+            
+                    if (this.moving) {
+                        const dx = (this.targetX - this.x) / movementSpeed;
+                        const dy = (this.targetY - this.y) / movementSpeed;
+                        this.x += dx;
+                        this.y += dy;
+            
+                        if (Math.abs(this.targetX - this.x) < Math.abs(dx) && Math.abs(this.targetY - this.y) < Math.abs(dy)) {
+                            this.x = this.targetX;
+                            this.y = this.targetY;
+                            this.moving = false;
+                            this.moveDirection = null;
+                        }
+                    }
+            
+                    updateFrame();
+                }
+            
+                checkExplosionCollision(explosions) {
+                
+                    explosions.forEach(exp => {
+                        const explosionX = exp.x * blockSize+5;
+                        const explosionY = exp.y * blockSize+5;
+                
+                        if (
+                            player.x < explosionX + blockSize-10 &&
+                            player.x + this.width > explosionX &&
+                            player.y < explosionY + blockSize-10 &&
+                            player.y + this.height > explosionY
+                        ){
+                            this.isDead = true; 
+                            ouch.pause();
+                            ouch.play(); 
+                        }
+                    });
+                }
+                
+            }
+            
+            
+
+            class Bomba {
+                constructor(gridX, gridY, radius, delay) {
+                    this.gridX = gridX;
+                    this.gridY = gridY;
+                    this.radius = radius;
+                    this.timer = delay;
+                    this.exploded = false;
+                    this.explosionDuration = 40;
+                    this.explosionTimer = this.explosionDuration;
+                    this.explosions = [];
+                }
+            
+                update() {
+                    if (this.timer > 0) {
+                        this.timer--;
+                    } else {
+                        if (!this.exploded) {
+                            this.exploded = true;
+                            this.generateExplosions();
+                            Explosion.play();
+                        } else {
+                            this.explosionTimer--;
+                            if (this.explosionTimer <= 0) {
+                                this.exploded = false;
+                            }
+                        }
+                    }
+            
+                    if (!this.exploded) {
+                        updateBombaFrame();
+                    } else {
+                        updateExplotionFrame();
+                    }
+                }
+            
+                draw() {
+                    if (!this.exploded) {
+                        ctx.drawImage(
+                            bombaSprite,
+                            bombaCurrentFrame * blockSize, 0,
+                            blockSize, blockSize,
+                            this.gridX * blockSize, this.gridY * blockSize,
+                            blockSize, blockSize
+                        );
+                    } else {
+                        this.drawExplosions();
+                    }
+                    setTimeout(() => {
+                        // QUEDA PENDIENTE EL FINALIZAR EL JUEGO
+                        if (Win()) {
+                            endGame(true);
+                        }
+                    }, 2000);
+                }
+            
+                generateExplosions() {
+                    this.explosions = [];
+
+                    // Explosión arriba
+                    for (let i = 1; i <= this.radius; i++) {
+                        const newY = this.gridY - i;
+                        if (map[newY] && map[newY][this.gridX] === 1) {
+                            break;
+                        } else if (map[newY] && map[newY][this.gridX] === 2) {
+                            this.explosions.push({ x: this.gridX, y: newY, direction: 'up' });
+                            map[newY][this.gridX] = 0;
+                            score += 10
+                            break;
+                        } else if (map[newY] && map[newY][this.gridX] === 0) {
+                            this.explosions.push({ x: this.gridX, y: newY, direction: 'up' });
+                        }
+                    }
+                    
+                    // Explosión abajo
+                    for (let i = 1; i <= this.radius; i++) {
+                        const newY = this.gridY + i;
+                        if (map[newY] && map[newY][this.gridX] === 1) {
+                            break;
+                        } else if (map[newY] && map[newY][this.gridX] === 2) {
+                            this.explosions.push({ x: this.gridX, y: newY, direction: 'down' });
+                            map[newY][this.gridX] = 0;
+                            score += 10
+                            break;
+                        } else if (map[newY] && map[newY][this.gridX] === 0) {
+                            this.explosions.push({ x: this.gridX, y: newY, direction: 'down' });
+                        }
+                    }
+            
+                    // Explosión izquierda
+                    for (let i = 1; i <= this.radius; i++) {
+                        const newX = this.gridX - i;
+                        if (map[this.gridY][newX] === 1) {
+                            break;
+                        } else if (map[this.gridY][newX] === 2) {
+                            this.explosions.push({ x: newX, y: this.gridY, direction: 'left' });
+                            map[this.gridY][newX] = 0;
+                            score += 10
+                            break;
+                        } else if (map[this.gridY][newX] === 0) {
+                            this.explosions.push({ x: newX, y: this.gridY, direction: 'left' });
+                        }
+                    }
+            
+                    // Explosión derecha
+                    for (let i = 1; i <= this.radius; i++) {
+                        const newX = this.gridX + i;
+                        if (map[this.gridY][newX] === 1) {
+                            break;
+                        } else if (map[this.gridY][newX] === 2) {
+                            this.explosions.push({ x: newX, y: this.gridY, direction: 'right' });
+                            map[this.gridY][newX] = 0;
+                            score += 10
+                            break;
+                        } else if (map[this.gridY][newX] === 0) {
+                            this.explosions.push({ x: newX, y: this.gridY, direction: 'right' });
+                        }
+                    }
+                }
+            
+                drawExplosions() {
+                    this.drawExplosion(this.gridX, this.gridY, 'center');
+                    this.explosions.forEach(exp => this.drawExplosion(exp.x, exp.y, exp.direction));    
+                }
+            
+                drawExplosion(x, y, direction) {
+                    const spriteRow = {
+                        'center': 0,
+                        'up': 3,
+                        'down': 4,
+                        'left': 1,
+                        'right': 2
+                    };
+            
+                    const row = spriteRow[direction] || 0;
+            
+                    ctx.drawImage(
+                        explotionSprite,
+                        explotionSpriteCurrentFrame * blockSize, row * blockSize,
+                        blockSize, blockSize,
+                        x * blockSize, y * blockSize,
+                        blockSize, blockSize
+                    );
+                    
+                }
+            }
+
+            const player = new Character(1, 1, blockSize, blockSize);
+            const keysPressed = { up: false, down: false, left: false, right: false, space: false, shift: false };
+
+            document.addEventListener("keydown", (e) => {
+                //console.log(e.keyCode);
+                switch (e.keyCode) {
+                    case 87:
+                        totalFrames = 7;
+                        frameRow = 0;
+                        if (!keysPressed.up && !keysPressed.down) { 
+                            player.move(0, -1); 
+                        }
+                        keysPressed.up = true; 
+                    break;
+                    case 65:
+                        totalFrames = 7;
+                        frameRow = 3;
+                        if (!keysPressed.left && !keysPressed.right) { 
+                            player.move(-1, 0); 
+                        }
+                        keysPressed.left = true; 
+                    break;
+                    case 83:
+                        totalFrames = 7;
+                        frameRow = 2;
+                        if (!keysPressed.down && !keysPressed.up) { 
+                            player.move(0, 1); 
+                        }
+                        keysPressed.down = true; 
+                    break;
+                    case 68:
+                        totalFrames = 7;
+                        frameRow = 1;
+                        if (!keysPressed.right && !keysPressed.left) { 
+                            player.move(1, 0); 
+                        }
+                        keysPressed.right = true; 
+                    break;
+                    case 32:
+                        if(!player.isDead){
+                            keysPressed.space = true; 
+                        }
+                    break;
+                    case 16:
+                        if(!player.isDead){
+                            tp.pause();
+                            tp.play();
+                            player.moveToRandomPosition();
+                            player.update();
+                            keysPressed.shift = true; 
+                        }
+                    break;
+
+                }
+            });
+
+            document.addEventListener("keyup", (e) => {
+                switch (e.keyCode) {
+                    case 87: keysPressed.up = false; break;
+                    case 65: keysPressed.left = false; break;
+                    case 83: keysPressed.down = false; break;
+                    case 68: keysPressed.right = false; break;
+                    case 32: keysPressed.space = false; break;
+                    case 16: keysPressed.shift = false; break;
+                }
+                if (!keysPressed.up && !keysPressed.down && !keysPressed.left && !keysPressed.right) {
+                    player.moving = false;
+                    totalFrames = 1;
+                }
+            });
+
+            let isBombActive = false;
+            let activeBomb = null;
+
+            function update() {
+                if (keysPressed.space) {
+                    if (!player.isDead) {
+                        if (!isBombActive) {
+                            bombsUsed += 1;
+                            activeBomb = new Bomba(player.gridX, player.gridY, 1, 150);
+                            isBombActive = true;
+                        }
+                    }
+                }
+            
+                if (activeBomb) {
+                    activeBomb.update();
+            
+                    if (activeBomb.exploded && activeBomb.explosionTimer <= 0) {
+                        if (!player.isDead) {
+                            player.checkExplosionCollision(activeBomb.explosions);
+                        }
+                        isBombActive = false;
+                        activeBomb = null;
+                    }
+                }
+            
+                if (!player.isDead) {
+                    player.update();
+                }
+            
+                bombs.forEach(bomb => bomb.update());
+                bombs = bombs.filter(bomb => bomb.exploded || bomb.explosionTimer > 0);
+            
+                updateScore(score);
+                updateBombUsed(bombsUsed);
+            }
+            
+            
+            function render() {
+
+                ctx.clearRect(0, 0, my_canvas.width, my_canvas.height);
+                
+                drawMap();
+                
+                if (activeBomb) {
+                    activeBomb.draw();
+                }
+                
+                if (!player.isDead) {
+                    stageSong.play();
+                    ctx.drawImage(
+                        sprite,
+                        currentFrame * spriteWidth, frameRow * spriteHeight,
+                        spriteWidth, spriteHeight,
+                        player.x, player.y,
+                        blockSize, blockSize
+                    );
+                }else{
+                    stageSong.pause();
+                    stageSong.currentTime = 0;
+                    endGame(false);
+                }
+            
+                bombs.forEach(bomb => bomb.draw());
+
+            }
+
+            function endGame(isWin) {
+                clearInterval(timerInterval);
+
+                document.getElementById('loseScreen').style.display = 'none';
+                document.getElementById('winScreen').style.display = 'none';
+            
+                if (!isWin) {
+                    document.getElementById('loseScreen').style.display = 'flex';
+                    const retryButtonLose = document.getElementById('retryButtonLose');
+                    retryButtonLose.removeEventListener('click', restartGame);
+                    retryButtonLose.addEventListener('click', () => {
+                        goToMainMenu();
+                    });
+                } else {
+                    document.getElementById('winScreen').style.display = 'flex';
+        
+                    const retryButtonWin = document.getElementById('retryButtonWin');
+                    retryButtonWin.removeEventListener('click', restartGame);
+                    retryButtonWin.addEventListener('click', () => {
+                        restartGame(isWin);
+                    });
+                }
+            }
+            
+            function restartGame(isWin) {
+                if (!isWin) {
+                    document.getElementById('loseScreen').style.display = 'none';
+                } else {
+                    document.getElementById('winScreen').style.display = 'none';
+                }
+                location.reload();
+            }
+            
+            function goToMainMenu() {
+                document.getElementById('loseScreen').style.display = 'none';
+                document.getElementById('winScreen').style.display = 'none';
+                window.location.href = 'index.html';
+            }
+            
+            
+            
+
+            function updateScore(newScore) {
+                score = newScore;
+                document.getElementById('score').textContent = `Score: ${score}`;
+            }
+
+            function updateBombUsed(newBombUsed) {
+                BombUsed = newBombUsed;
+                document.getElementById('bombsUsed').textContent = `Bombs: ${BombUsed}`;
+            }
+
+            
+            
+            function Win() {
+                for (let row = 0; row < map.length; row++) {
+                    for (let col = 0; col < map[row].length; col++) {
+                        if (map[row][col] === 2) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            function drawMap() {
+                for (let row = 0; row < map.length; row++) {
+                    for (let col = 0; col < map[row].length; col++) {
+                        if (map[row][col] === 1) {
+                            ctx.drawImage(Muro, col * blockSize, row * blockSize, blockSize, blockSize);
+                        } else if (map[row][col] === 2) {
+                            ctx.drawImage(MuroDestructible, col * blockSize, row * blockSize, blockSize, blockSize);
+                        }
+                    }
+                }
+            }
+            const startMenu = document.getElementById('startMenu');
+            startSinglePlayerButton.addEventListener('click', () => startGame('single'));
+            
+            
+            
+            function gameLoop() {
+                update();
+                render();
+                requestAnimationFrame(gameLoop);
+            }
+            
+            function startGame(mode) {
+                startMenu.style.display = 'none';
+                if (!timerInterval) {
+                    timerInterval = setInterval(updateTimer, 1000);
+                }
+                gameLoop();
+            }
+        </script>
+    </body>
+</html>
