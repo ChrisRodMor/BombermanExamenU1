@@ -40,7 +40,7 @@
         
         <!--video-->
         <video autoplay muted loop id="backgroundVideo">
-            <source src="../backgroundMOVING/SB2.mp4" type="video/mp4">
+            <source src="backgroundMOVING/SB2.mp4" type="video/mp4">
         </video>
         
         <!--JUEGO-->
@@ -56,12 +56,12 @@
             let bombsUsed = 0;
 
             //SONGS
-            const stageSong = new Audio("../OST/stageSong.mp3");
-            const lose = new Audio("../OST/LOSE.mp3");
-            const win = new Audio("../OST/win.mp3");
-            const Explosion = new Audio("../OST/Explosion.mp3");
-            const ouch = new Audio("../OST/ouch.mp3");
-            const tp = new Audio("../OST/tp.mp3");
+            const stageSong = new Audio("OST/stageSong.mp3");
+            const lose = new Audio("OST/LOSE.mp3");
+            const win = new Audio("OST/win.mp3");
+            const Explosion = new Audio("OST/Explosion.mp3");
+            const ouch = new Audio("OST/ouch.mp3");
+            const tp = new Audio("OST/tp.mp3");
 
             //PLAYERSETTINGS
             const blockSize = 32;
@@ -139,7 +139,7 @@
             startButton.addEventListener('click', startGame);
 
             let timerInterval;
-            let timeRemaining = 10;
+            let timeRemaining = 180;
             const timerElement = document.getElementById('timer');
 
 
@@ -632,7 +632,6 @@
                 }
             }
             const startMenu = document.getElementById('startMenu');
-            startSinglePlayerButton.addEventListener('click', () => startGame('single'));
             
             
             
