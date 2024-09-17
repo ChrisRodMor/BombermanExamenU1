@@ -16,10 +16,18 @@
     </div>
 
     <div id="startMenu" class="menu">
+       
+        <h1>BOMBER-NAUT</h1>
+        <br>
+        <h1>TAP W,A,S,D To move, SPACE for Bombs</h1>
+        <h1>Special Ability:  SHIFT(Teleport)</h1> 
         <button id="startSinglePlayer"></button>
-        <h1>W,A,S,D To move, SPACE for Bombs</h1>
-        <h1>Special Ability:  SHIFT(Teleport)</h1>
     </div>
+
+    <video autoplay muted loop id="backgroundVideo">
+        <source src="../backgroundMOVING/spaceBackground.mp4" type="video/mp4">
+    </video>
+    
     
 
   
@@ -40,6 +48,7 @@
         const win = new Audio("../OST/win.mp3");
         const Explosion = new Audio("../OST/Explosion.mp3");
         const ouch = new Audio("../OST/ouch.mp3");
+        const tp = new Audio("../OST/tp.mp3");
 
         const blockSize = 32;
         const movementSpeed = 4;
@@ -80,7 +89,7 @@
 
 
 
-        /*const map = [
+        const map = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 0, 0, 2, 2, 0, 2, 0, 2, 2, 2, 2, 0, 2, 0, 0, 1],
             [1, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 0, 1],
@@ -94,9 +103,9 @@
             [1, 0, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 0, 1],
             [1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        ];*/
+        ];
 
-        const map = [
+        /*const map = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
@@ -110,24 +119,25 @@
             [1, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        ];
+        ];*/
+
+        const startButton = document.getElementById('startSinglePlayer');
+        startButton.addEventListener('click', startGame);
 
         let timerInterval;
         let timeRemaining = 180;
         const timerElement = document.getElementById('timer');
 
-        const startButton = document.getElementById('startSinglePlayer');
-        startButton.addEventListener('click', startGame);
 
         function updateTimer() {
-            if (timeRemaining > 0) {
-                timeRemaining--;
-                timerElement.textContent = `Time: ${timeRemaining}`;
-            } else {
-                clearInterval(timerInterval);
-                endGame(true);
-            }
+        if (timeRemaining > 0) {
+            timeRemaining--;
+            timerElement.textContent = `Time: ${timeRemaining}`;
+        } else {
+            clearInterval(timerInterval);
+            endGame(true);
         }
+    }
 
 
         function updateFrame() {
@@ -187,6 +197,21 @@
                         this.moveDirection = dy !== 0 ? (dy > 0 ? 'down' : 'up') : (dx > 0 ? 'right' : 'left');
                     }
                 }
+            }
+
+            moveToRandomPosition() {
+                let newX, newY;
+        
+                do {
+                    newX = Math.floor(Math.random() * map[0].length);
+                    newY = Math.floor(Math.random() * map.length);
+                } while (map[newY][newX] !== 0 || bombs.some(bomb => bomb.gridX === newX && bomb.gridY === newY));
+        
+                this.gridX = newX;
+                this.gridY = newY;
+                this.targetX = newX * blockSize;
+                this.targetY = newY * blockSize;
+                this.moving = true;
             }
         
             update() {
@@ -379,10 +404,10 @@
         }
 
         const player = new Character(1, 1, blockSize, blockSize);
-        const keysPressed = { up: false, down: false, left: false, right: false, space: false };
+        const keysPressed = { up: false, down: false, left: false, right: false, space: false, shift: false };
 
         document.addEventListener("keydown", (e) => {
-
+            //console.log(e.keyCode);
             switch (e.keyCode) {
                 case 87:
                     totalFrames = 7;
@@ -416,11 +441,20 @@
                     }
                     keysPressed.right = true; 
                 break;
-                case 32: 
+                case 32:
                     if(!player.isDead){
                         keysPressed.space = true; 
                     }
-                break; 
+                break;
+                case 16:
+                    if(!player.isDead){
+                        tp.pause();
+                        tp.play();
+                        player.moveToRandomPosition();
+                        player.update();
+                        keysPressed.shift = true; 
+                    }
+                break;
 
             }
         });
@@ -432,6 +466,7 @@
                 case 83: keysPressed.down = false; break;
                 case 68: keysPressed.right = false; break;
                 case 32: keysPressed.space = false; break;
+                case 16: keysPressed.shift = false; break;
             }
             if (!keysPressed.up && !keysPressed.down && !keysPressed.left && !keysPressed.right) {
                 player.moving = false;

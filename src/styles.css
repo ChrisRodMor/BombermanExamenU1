@@ -1,9 +1,12 @@
+*{
+    font-family: 'Press Start 2P', Arial, sans-serif;
+}
 body {
     margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 110vh;
+    height: 105vh;
     background-color: #6B696B;
     overflow: hidden;
     position: relative;
@@ -12,7 +15,7 @@ body {
 canvas {
     width: 60vw;
     height: 90vh;
-    background-color: rgb(7,122,45);
+    background-color: rgba(255, 255, 255, 0.1);
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     display: block;
@@ -20,14 +23,12 @@ canvas {
 
 #startMenu {
     position: absolute;
-    background-repeat: no-repeat;
     background-position: 50%;
-    top: 0;
-    left: 0;
-    width: 100%;
+    top: 20%;
+    left: 25%;
+    width: 50%;
     height: 100%;
-    background-image: url("../sprites/Bomberman_0.png");
-    color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
     display: table-column;
     justify-content: center;
     align-items: center;
@@ -38,9 +39,9 @@ canvas {
 }
 
 #startMenu button {
-    margin-top: 33%;
+    margin-top: 10%;
     margin-right: 50px;
-    width: 10%;
+    width: 20%;
     height: 4%;
     background-color: rgba(0, 0,0 ,0);
     background-image: url("../sprites/start.gif");
@@ -61,7 +62,6 @@ canvas {
     border-radius: 5px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     color: #fff;
-    font-family: 'Press Start 2P', Arial, sans-serif;
     font-size: 16px;
     z-index: 10;
 }
@@ -69,6 +69,16 @@ canvas {
 
 #timer, #score, #bombsUsed {
     margin: 0 50px;
-    font-size: 16px;
+    font-size: 20px;
     display: inline-block;
+}
+
+#backgroundVideo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Asegura que el video cubra todo el fondo */
+    z-index: -1; /* Envía el video al fondo, detrás del contenido */
 }
